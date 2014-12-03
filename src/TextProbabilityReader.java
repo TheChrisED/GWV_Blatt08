@@ -30,8 +30,9 @@ public class TextProbabilityReader
      * The _words Map holds every word from the text and its successors along
      * with the number of occurrences of each successor after the word
      */
-    private Map<String, Map<String, Integer>> _words;
+    //private Map<String, Map<String, Integer>> words;
     private InputStream _location;
+    private Map<String, String> _markovChain;
     
     
     /**
@@ -44,7 +45,7 @@ public class TextProbabilityReader
     public TextProbabilityReader(InputStream location)
     {
         _location = location;
-        _words = new HashMap<String, Map<String, Integer>>();
+        //words = new HashMap<String, Map<String, Integer>>();
     }
 
     
@@ -57,15 +58,18 @@ public class TextProbabilityReader
         // TODO Debug Methoden entfernen
         BufferedReader reader = new BufferedReader(new InputStreamReader(_location));
 
+        Map<String, Map<String, Integer>> words = new HashMap<String, Map<String, Integer>>();
+        System.out.println("Lese Text ein...");
+        
         String currentWord = reader.readLine();
         String nextWord = reader.readLine();
         int loopCounter = 0;
         long startTime = System.nanoTime();
         while (nextWord != null)
         {
-            if (_words.containsKey(currentWord))
+            if (words.containsKey(currentWord))
             {
-                Map<String, Integer> successors = _words.get(currentWord);
+                Map<String, Integer> successors = words.get(currentWord);
 
                 if (successors.containsKey(nextWord))
                 {
@@ -82,7 +86,7 @@ public class TextProbabilityReader
             {
                 Map<String, Integer> successors = new HashMap<String, Integer>();
                 successors.put(nextWord, 1);
-                _words.put(currentWord, successors);
+                words.put(currentWord, successors);
             }
             currentWord = nextWord;
             nextWord = reader.readLine();
@@ -100,7 +104,40 @@ public class TextProbabilityReader
         System.out.println("Es wurden " + (loopCounter * 2) + " Woerter in "
                 + timerSec + "s eingelesen.");
         // System.out.println("Verstrichene Zeit: " + timerSec + "s");
-        Map<String, Integer> das = _words.get("das");
         //System.out.println(das.toString());
+        System.out.println("Verarbeite Text...");
+        createMarkovChain(words);
+    }
+    
+    /**
+     * Takes the Map that was formed from the text and turns it into a Markov Chain
+     * @param words the map that was read in from the specified text file
+     */
+    private void createMarkovChain(Map<String, Map<String, Integer>> words)
+    {
+        Set<String> keys = words.keySet();
+        Map<String, String> markovChain = new HashMap<String, String>();
+        for (String key: keys)
+        {
+            Map<String, Integer> successorProbabilities = words.get(key);
+            Set<String> successors = successorProbabilities.keySet();
+            int probability = 0;
+            String mostProbableSuccessor = null;
+            
+            for (String successor: successors)
+            {
+                int successorProbability = successorProbabilities.get(successor);
+                if (successorProbability > probability)
+                {
+                    probability = successorProbability;
+                    mostProbableSuccessor = successor;
+                }
+            }
+            
+            markovChain.put(key, mostProbableSuccessor);
+        }
+        
+        _markovChain = markovChain;
+        System.out.println("Text verarbeitet!");
     }
 }
